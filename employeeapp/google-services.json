@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1013091348364",
+    "project_id": "andb-tasktrackingproject",
+    "storage_bucket": "andb-tasktrackingproject.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1013091348364:android:7dedb6d65da138e91db0a9",
+        "android_client_info": {
+          "package_name": "com.example.employeeapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbNKK1so9aQ0a8OHJFPqmFx4xX5zvjKyw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1013091348364:android:c2539950b54673b11db0a9",
+        "android_client_info": {
+          "package_name": "com.example.managerapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbNKK1so9aQ0a8OHJFPqmFx4xX5zvjKyw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
