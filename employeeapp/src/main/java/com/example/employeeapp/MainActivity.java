@@ -11,8 +11,15 @@ import com.example.common.TaskAdapter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import com.google.firebase.firestore.DocumentChange;
+import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.QuerySnapshot;
+
 
 public class MainActivity extends BaseActivity {
+    private FirebaseFirestore firestore;
 
     private RecyclerView recyclerView;
     private TaskAdapter adapter;
@@ -23,8 +30,11 @@ public class MainActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         showToast("ברוכים הבאים לאפליקציית העובדים!");
         setContentView(R.layout.activity_main);
-        recyclerView = findViewById(R.id.taskRecyclerView);
 
+        firestore = FirebaseFirestore.getInstance();
+        listenForTasks();
+
+        recyclerView = findViewById(R.id.taskRecyclerView);
         taskList = generateDummyTasks();
         adapter = new TaskAdapter(taskList);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -41,5 +51,27 @@ public class MainActivity extends BaseActivity {
         list.add(new Task("2", "הצגת פרויקט בכיתה", "ביום שלישי הקרוב", cal.getTime()));
 
         return list;
+    }
+    private void listenForTasks() {
+        firestore.collection("tasks")
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        showToast("שגיאה בטעינת משימות");
+                        return;
+                    }
+
+                    if (value == null) return;
+
+                    for (DocumentChange dc : value.getDocumentChanges()) {
+                        switch (dc.getType()) {
+                            case ADDED:
+                                Task task = dc.getDocument().toObject(Task.class);
+                                taskList.add(task);
+                                adapter.notifyItemInserted(taskList.size() - 1);
+                                break;
+                            // אפשר בעתיד להוסיף גם MODIFIED, REMOVED
+                        }
+                    }
+                });
     }
 }

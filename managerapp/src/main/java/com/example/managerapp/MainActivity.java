@@ -14,8 +14,11 @@ import com.example.common.TaskAdapter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 public class MainActivity extends BaseActivity {
+    private FirebaseFirestore firestore;
 
     private EditText taskTitleInput, taskDescInput;
     private Button addTaskButton;
@@ -27,6 +30,7 @@ public class MainActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         showToast("ברוכים הבאים לאפליקציית המנהלים!");
+        firestore = FirebaseFirestore.getInstance();
         setContentView(R.layout.activity_main);
 
         taskTitleInput = findViewById(R.id.taskTitleInput);
@@ -49,11 +53,24 @@ public class MainActivity extends BaseActivity {
 
             Calendar cal = Calendar.getInstance();
             cal.add(Calendar.DAY_OF_MONTH, 2);
-            Task task = new Task(String.valueOf(taskList.size() + 1), title, desc, cal.getTime());
-            taskList.add(task);
-            adapter.notifyItemInserted(taskList.size() - 1);
-            taskTitleInput.setText("");
-            taskDescInput.setText("");
+
+            // נשתמש ב-ID ייחודי על בסיס זמן
+            Task task = new Task(String.valueOf(System.currentTimeMillis()), title, desc, cal.getTime());
+
+            // שמירה בפיירבייס
+            firestore.collection("tasks")
+                    .document(task.getId())
+                    .set(task)
+                    .addOnSuccessListener(unused -> {
+                        taskList.add(task);
+                        adapter.notifyItemInserted(taskList.size() - 1);
+                        showToast("המשימה נשמרה בהצלחה!");
+                        taskTitleInput.setText("");
+                        taskDescInput.setText("");
+                    })
+                    .addOnFailureListener(e -> {
+                        showToast("שגיאה בשמירת המשימה");
+                    });
         });
     }
 }
