@@ -55,8 +55,7 @@ public class MainActivity extends BaseActivity {
             cal.add(Calendar.DAY_OF_MONTH, 2);
 
             // נשתמש ב-ID ייחודי על בסיס זמן
-            Task task = new Task(String.valueOf(System.currentTimeMillis()), title, desc, cal.getTime());
-
+            Task task = new Task(String.valueOf(taskList.size() + 1), title, desc, cal.getTime());
             // שמירה בפיירבייס
             firestore.collection("tasks")
                     .document(task.getId())
