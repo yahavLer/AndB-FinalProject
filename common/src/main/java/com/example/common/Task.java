@@ -17,7 +17,8 @@ public class Task implements Serializable {
         this.dueDate = dueDate;
         this.completed = false;
     }
-
+    public Task() {
+    }
     public String getId() { return id; }
     public String getTitle() { return title; }
     public String getDescription() { return description; }
