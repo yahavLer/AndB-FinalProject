@@ -35,23 +35,19 @@ public class MainActivity extends BaseActivity {
         listenForTasks();
 
         recyclerView = findViewById(R.id.taskRecyclerView);
-        taskList = generateDummyTasks();
-        adapter = new TaskAdapter(taskList);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        taskList = new ArrayList<>();
+        adapter = new TaskAdapter(taskList, true, task -> {
+            FirebaseFirestore.getInstance().collection("tasks")
+                    .document(task.getId())
+                    .update("completed", true)
+                    .addOnSuccessListener(unused -> {
+                        task.setCompleted(true);
+                        adapter.notifyDataSetChanged(); // או notifyItemChanged לפי מיקום
+                    });
+        });        recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
     }
-    private List<Task> generateDummyTasks() {
-        List<Task> list = new ArrayList<>();
-        Calendar cal = Calendar.getInstance();
 
-        cal.add(Calendar.DAY_OF_MONTH, 2);
-        list.add(new Task("1", "בדיקת אפליקציה", "לוודא שהכול עובד", cal.getTime()));
-
-        cal.add(Calendar.DAY_OF_MONTH, 3);
-        list.add(new Task("2", "הצגת פרויקט בכיתה", "ביום שלישי הקרוב", cal.getTime()));
-
-        return list;
-    }
     private void listenForTasks() {
         firestore.collection("tasks")
                 .addSnapshotListener((value, error) -> {

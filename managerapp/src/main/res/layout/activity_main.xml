@@ -5,7 +5,22 @@
     android:padding="16dp"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
+    <TextView
+        android:text="🛠️ אפליקציית מנהל משימות"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#000000"
+        android:layout_marginBottom="4dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
 
+    <TextView
+        android:text="כאן תוכל להוסיף משימות לעובדים ולעקוב אחרי סטטוס הביצוע שלהן:"
+        android:textSize="14sp"
+        android:textColor="#555555"
+        android:layout_marginBottom="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
     <EditText
         android:id="@+id/taskTitleInput"
         android:hint="כותרת המשימה"

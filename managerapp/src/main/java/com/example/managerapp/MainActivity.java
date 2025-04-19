@@ -39,10 +39,10 @@ public class MainActivity extends BaseActivity {
         taskRecycler = findViewById(R.id.managerTaskRecycler);
 
         taskList = new ArrayList<>();
-        adapter = new TaskAdapter(taskList);
+        adapter = new TaskAdapter(taskList, false, task -> {});
         taskRecycler.setLayoutManager(new LinearLayoutManager(this));
         taskRecycler.setAdapter(adapter);
-
+        listenForTasks();
         addTaskButton.setOnClickListener(v -> {
             String title = taskTitleInput.getText().toString();
             String desc = taskDescInput.getText().toString();
@@ -61,8 +61,6 @@ public class MainActivity extends BaseActivity {
                     .document(task.getId())
                     .set(task)
                     .addOnSuccessListener(unused -> {
-                        taskList.add(task);
-                        adapter.notifyItemInserted(taskList.size() - 1);
                         showToast("המשימה נשמרה בהצלחה!");
                         taskTitleInput.setText("");
                         taskDescInput.setText("");
@@ -72,4 +70,23 @@ public class MainActivity extends BaseActivity {
                     });
         });
     }
+    private void listenForTasks() {
+        firestore.collection("tasks")
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        showToast("שגיאה בטעינת המשימות");
+                        return;
+                    }
+
+                    if (value == null) return;
+
+                    taskList.clear();
+                    for (QueryDocumentSnapshot doc : value) {
+                        Task task = doc.toObject(Task.class);
+                        taskList.add(task);
+                    }
+                    adapter.notifyDataSetChanged();
+                });
+    }
+
 }
