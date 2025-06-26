@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- עיגול חיצוני - outline שחור -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M12,1C6.03,1 1,6.03 1,12s5.03,11 11,11 11,-5.03 11,-11S17.97,1 12,1z" />
+
+    <!-- עיגול פנימי ירוק (קטן יותר כדי שה-outline ייראה) -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z"/>
+
+    <!-- סימן וי -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,17l-5,-5 1.41,-1.41L10,14.17l7.59,-7.59L19,8l-9,9z" />
+</vector>
