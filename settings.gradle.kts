@@ -19,7 +19,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AndB-TaskTrackingProject"
+rootProject.name = "AndB-FinalProject"
 include(":app")
 include(":common")
 include(":managerapp")
