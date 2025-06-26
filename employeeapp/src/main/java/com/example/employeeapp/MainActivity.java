@@ -1,6 +1,8 @@
 package com.example.employeeapp;
 
 import android.os.Bundle;
+import android.util.Log;
+
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -32,7 +34,7 @@ public class MainActivity extends BaseActivity {
         setContentView(R.layout.activity_main);
 
         firestore = FirebaseFirestore.getInstance();
-        listenForTasks();
+//        listenForTasks();
 
         recyclerView = findViewById(R.id.taskRecyclerView);
         taskList = new ArrayList<>();
@@ -42,10 +44,17 @@ public class MainActivity extends BaseActivity {
                     .update("completed", true)
                     .addOnSuccessListener(unused -> {
                         task.setCompleted(true);
+                        showToast("המשימה סומנה כהושלמה");
                         adapter.notifyDataSetChanged(); // או notifyItemChanged לפי מיקום
+                    }).addOnFailureListener(e -> {
+                        showToast("שגיאה בסימון משימה כהושלמה");
+                        Log.e("EMPLOYEE", "Error updating task: " + task.getId(), e);
                     });
-        });        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        });
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
+
+        listenForTasks();
     }
 
     private void listenForTasks() {
@@ -53,21 +62,26 @@ public class MainActivity extends BaseActivity {
                 .addSnapshotListener((value, error) -> {
                     if (error != null) {
                         showToast("שגיאה בטעינת משימות");
+                        Log.e("EMPLOYEE", "שגיאה בטעינת משימות", error);
                         return;
                     }
 
-                    if (value == null) return;
-
+                    if (value == null) {
+                        Log.w("EMPLOYEE", "Snapshot value == null");
+                        return;
+                    }
                     for (DocumentChange dc : value.getDocumentChanges()) {
                         switch (dc.getType()) {
                             case ADDED:
                                 Task task = dc.getDocument().toObject(Task.class);
+                                Log.d("EMPLOYEE", "נוספה משימה: " + task);
                                 taskList.add(task);
                                 adapter.notifyItemInserted(taskList.size() - 1);
                                 break;
                             // אפשר בעתיד להוסיף גם MODIFIED, REMOVED
                         }
                     }
+                    Log.d("EMPLOYEE", "סך כל המשימות: " + taskList.size());
                 });
     }
 }
