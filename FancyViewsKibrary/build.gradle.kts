@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.classy.fancyviews"
+    namespace = "com.example.fancyviews"
     compileSdk = 35
 
     defaultConfig {
@@ -45,7 +45,7 @@ afterEvaluate {
         publications {
             create<MavenPublication>("release") {
                 from(components["release"])
-                groupId = "com.github.classy-android"
+                groupId = "com.github.yahavLer"
                 artifactId = "FancyViews"
                 version = "v1.0.1"
             }

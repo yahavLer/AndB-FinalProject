@@ -1,4 +1,4 @@
-package com.classy.fancyviews;
+package com.example.fancyviews;
 
 import org.junit.Test;
 
