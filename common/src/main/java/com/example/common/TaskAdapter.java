@@ -41,6 +41,18 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         SimpleDateFormat format = new SimpleDateFormat("dd/MM/yyyy");
         holder.date.setText(format.format(task.getDueDate()));
 
+        if (task.isSpecial()) {
+            holder.itemView.setBackgroundResource(R.drawable.special_task_background);
+            holder.title.setTextColor(0xFFD32F2F); // אדום חזק
+            holder.title.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_star, 0, 0, 0);
+            holder.status.setText("⭐ משימה מיוחדת ⭐");
+        } else {
+            holder.itemView.setBackgroundResource(R.drawable.normal_task_background);
+            holder.title.setTextColor(0xFF222222);
+            holder.title.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
+            holder.status.setText(task.isCompleted() ? "✔️ הושלמה" : "⏳ ממתינה לביצוע");
+        }
+
         if (isEmployeeMode) {
             holder.completeButton.setVisibility(View.VISIBLE);
             holder.completeButton.setEnabled(!task.isCompleted());
