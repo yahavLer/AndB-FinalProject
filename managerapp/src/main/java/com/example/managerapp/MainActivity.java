@@ -46,8 +46,13 @@ public class MainActivity extends BaseActivity {
         setContentView(R.layout.activity_main);
 
         initViews();
-        fancyAddTaskSetOnClick();
-        addTaskButtonSetOnClick();
+        addTaskButton.setOnClickListener(v -> {
+            addTaskToFirestore(false);
+        });
+
+        fancyAddTaskButton.setOnClickListener(v -> {
+            addTaskToFirestore(true);
+        });
         exportPdfButton.setOnClickListener(v -> requestCreatePdf());
 
         taskList = new ArrayList<>();
@@ -63,75 +68,52 @@ public class MainActivity extends BaseActivity {
         if (requestCode == CREATE_PDF_REQUEST_CODE && resultCode == RESULT_OK) {
             if (data != null && data.getData() != null) {
                 Uri pdfUri = data.getData();
-                //exportRecyclerViewToPdf(pdfUri);
                 exportTasksTableToPdf(pdfUri);
             }
         }
     }
 
-
-    private void addTaskButtonSetOnClick() {
-        addTaskButton.setOnClickListener(v -> {
-            String title = taskTitleInput.getText().toString();
-            String desc = taskDescInput.getText().toString();
-            addTask(title, desc, false, null, null);
-        });
-        exportPdfButton.setOnClickListener(v -> requestCreatePdf());
-    }
-
-    private void addTask(String title, String desc, boolean isSpecial, @Nullable Runnable onSuccess, @Nullable Runnable onError) {
-        Log.d("MANAGER", "ניסיון להוספת משימה: כותרת=" + title + ", תיאור=" + desc);
+    private void addTaskToFirestore(boolean isSpecial) {
+        String title = taskTitleInput.getText().toString();
+        String desc = taskDescInput.getText().toString();
 
         if (title.isEmpty() || desc.isEmpty()) {
             showToast("נא למלא כותרת ותיאור");
-            if (onError != null) onError.run();
+            if (isSpecial) {
+                fancyAddTaskButton.setState(LoadingButton.ButtonState.ERROR);
+                fancyAddTaskButton.postDelayed(() ->
+                        fancyAddTaskButton.setState(LoadingButton.ButtonState.IDLE), 1200);
+            }
             return;
         }
+        if (isSpecial) fancyAddTaskButton.setState(LoadingButton.ButtonState.LOADING);
 
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DAY_OF_MONTH, 2);
         String taskId = String.valueOf(System.currentTimeMillis());
-
-        // נשתמש ב-ID ייחודי על בסיס זמן
-        //Task task = new Task(String.valueOf(taskList.size() + 1), title, desc, cal.getTime());
         Task task = new Task(taskId, title, desc, cal.getTime(),isSpecial);
 
-        // שמירה בפיירבייס
         firestore.collection("tasks")
                 .document(task.getId())
                 .set(task)
                 .addOnSuccessListener(unused -> {
                     showToast("המשימה נשמרה בהצלחה!");
-                    Log.d("MANAGER", "משימה נשמרה בהצלחה: " + task);
+                    if (isSpecial) {
+                        fancyAddTaskButton.setState(LoadingButton.ButtonState.SUCCESS);
+                        fancyAddTaskButton.postDelayed(() ->
+                                fancyAddTaskButton.setState(LoadingButton.ButtonState.IDLE), 1200);
+                    }
                     taskTitleInput.setText("");
                     taskDescInput.setText("");
                 })
                 .addOnFailureListener(e -> {
                     showToast("שגיאה בשמירת המשימה");
-                    if (onError != null) onError.run();
-                    Log.e("MANAGER", "שגיאה בשמירת המשימה", e);
-                });
-    }
-
-    private void fancyAddTaskSetOnClick() {
-        fancyAddTaskButton.setOnClickListener(v -> {
-            String title = taskTitleInput.getText().toString();
-            String desc = taskDescInput.getText().toString();
-            fancyAddTaskButton.setState(LoadingButton.ButtonState.LOADING);
-            addTask(title, desc, true,
-                    () -> { // On Success
-                        fancyAddTaskButton.setState(LoadingButton.ButtonState.SUCCESS);
-                        fancyAddTaskButton.postDelayed(() ->
-                                fancyAddTaskButton.setState(LoadingButton.ButtonState.IDLE), 1200);
-                    },
-                    () -> { // On Error
+                    if (isSpecial) {
                         fancyAddTaskButton.setState(LoadingButton.ButtonState.ERROR);
                         fancyAddTaskButton.postDelayed(() ->
                                 fancyAddTaskButton.setState(LoadingButton.ButtonState.IDLE), 1200);
                     }
-            );
-        });
-
+                });
     }
 
     private void initViews() {
@@ -172,17 +154,6 @@ public class MainActivity extends BaseActivity {
         intent.setType("application/pdf");
         intent.putExtra(Intent.EXTRA_TITLE, "tasks_list.pdf");
         startActivityForResult(intent, CREATE_PDF_REQUEST_CODE);
-    }
-
-    // מייצא את ה־RecyclerView לצילום PDF
-    private void exportRecyclerViewToPdf(Uri pdfUri) {
-        taskRecycler.post(() -> {
-            boolean success = PdfExporter.exportViewToPdf(this, taskRecycler, pdfUri);
-            if (success) {
-                showToast("הקובץ נשמר בהצלחה!");
-                PdfExporter.openPdf(this, pdfUri);
-            }
-        });
     }
 
     private List<PdfExporter.TaskInfo> convertTasksToInfoList(List<Task> tasks) {

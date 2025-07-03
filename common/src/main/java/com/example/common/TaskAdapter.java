@@ -1,5 +1,6 @@
 package com.example.common;
 
+import android.graphics.Typeface;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,14 +18,31 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     private final List<Task> tasks;
     private final boolean isEmployeeMode;
     private final OnTaskActionListener actionListener;
+
     public interface OnTaskActionListener {
         void onMarkCompleted(Task task);
     }
+
+    /**
+     * Adapter for displaying tasks in a RecyclerView.
+     *
+     * @param tasks          List of tasks to display.
+     * @param isEmployeeMode True if the adapter is in employee mode, false for manager mode.
+     * @param listener       Listener for task actions (e.g., marking as completed).
+     */
     public TaskAdapter(List<Task> tasks, boolean isEmployeeMode, OnTaskActionListener listener) {
         this.tasks = tasks;
         this.isEmployeeMode = isEmployeeMode;
         this.actionListener = listener;
     }
+
+    /**
+     * Creates a new ViewHolder for the task item.
+     *
+     * @param parent   The parent ViewGroup.
+     * @param viewType The view type of the new View.
+     * @return A new TaskViewHolder instance.
+     */
     @NonNull
     @Override
     public TaskViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -45,6 +63,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             holder.itemView.setBackgroundResource(R.drawable.special_task_background);
             holder.title.setTextColor(0xFFD32F2F); // אדום חזק
             holder.title.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_star, 0, 0, 0);
+            holder.title.setTypeface(holder.title.getTypeface(), Typeface.BOLD);
             holder.status.setText("⭐ משימה מיוחדת ⭐");
         } else {
             holder.itemView.setBackgroundResource(R.drawable.normal_task_background);
@@ -57,7 +76,6 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             holder.completeButton.setVisibility(View.VISIBLE);
             holder.completeButton.setEnabled(!task.isCompleted());
             holder.completeButton.setText(task.isCompleted() ? "הושלמה ✅" : "בוצע");
-
             holder.completeButton.setOnClickListener(v -> {
                 actionListener.onMarkCompleted(task);
             });
@@ -65,7 +83,6 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             holder.completeButton.setVisibility(View.GONE); // מוסתר למנהל
         }
         holder.status.setText(task.isCompleted() ? "✔️ הושלמה" : "⏳ ממתינה לביצוע");
-
     }
 
     @Override
