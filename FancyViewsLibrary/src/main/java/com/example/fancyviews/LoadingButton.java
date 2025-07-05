@@ -3,6 +3,7 @@ import static com.example.fancyviews.LoadingButton.ButtonState.DISABLED;
 import static com.example.fancyviews.LoadingButton.ButtonState.ERROR;
 import static com.example.fancyviews.LoadingButton.ButtonState.IDLE;
 import static com.example.fancyviews.LoadingButton.ButtonState.SUCCESS;
+import android.util.Log;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -88,85 +89,104 @@ public class LoadingButton extends FrameLayout {
         progressParams.gravity = Gravity.CENTER;
         addView(progressBar, progressParams);
 
-        button.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (state == IDLE) {
-                    setState(ButtonState.LOADING);
-                }
-            }
+        // תיקון: בלחיצה על הכפתור לא נעבור למצב LOADING אוטומטית
+        button.setOnClickListener(v -> {
+            // נתן למי שמשתמש בכפתור לקבוע מתי לעבור למצב LOADING
+            // רק נודיע על הלחיצה
+            Log.d("LOADING_BTN", "Button clicked, current state: " + state);
         });
+        updateUI();
     }
 
     public void setState(ButtonState newState) {
+        Log.d("LOADING_BTN", "setState called: " + state + " -> " + newState);
         this.state = newState;
         updateUI();
         if (onStateChangeListener != null) {
             onStateChangeListener.onStateChanged(newState);
         }
     }
+
+    public ButtonState getState() {
+        return state;
+    }
+    @Override
+    public void setOnClickListener(OnClickListener listener) {
+        if (button != null) {
+            button.setOnClickListener(listener);
+        }
+    }
     private void updateUI() {
-        int iconRes = 0;
-        String text = "";
-        switch (state) {
-            case IDLE:
-                text = textIdle;
-                iconRes = iconIdleRes;
-                //button.setText("שלח");
-                button.setEnabled(true);
-                button.setAlpha(1f);
-                progressBar.setVisibility(View.GONE);
-                button.setBackgroundColor(bgColorIdle);
-                button.setTextColor(textColorIdle);
-                break;
+        post(() -> {
+            int iconRes = 0;
+            String text = "";
+            Log.d("LOADING_BTN", "updateUI state=" + state);
 
-            case LOADING:
-                text = textLoading;
-                iconRes = iconLoadingRes;
-                //button.setText("טוען...");
-                button.setEnabled(false);
-                progressBar.setVisibility(View.VISIBLE);
-                button.setBackgroundColor(bgColorLoading);
-                button.setTextColor(textColorLoading);
-                break;
+            switch (state) {
+                case IDLE:
+                    text = textIdle;
+                    iconRes = iconIdleRes;
+                    //button.setText("שלח");
+                    button.setEnabled(true);
+                    button.setAlpha(1f);
+                    progressBar.setVisibility(View.GONE);
+                    button.setBackgroundColor(bgColorIdle);
+                    button.setTextColor(textColorIdle);
+                    break;
 
-            case SUCCESS:
-                text = textSuccess;
-                iconRes = iconSuccessRes;
-                //button.setText("✔ הצלחה");
-                button.setEnabled(false);
-                progressBar.setVisibility(View.GONE);
-                button.setBackgroundColor(bgColorSuccess);
-                button.setTextColor(textColorSuccess);
-                break;
+                case LOADING:
+                    text = textLoading;
+                    iconRes = iconLoadingRes;
+                    //button.setText("טוען...");
+                    button.setEnabled(false);
+                    progressBar.setVisibility(View.VISIBLE);
+                    button.setBackgroundColor(bgColorLoading);
+                    button.setTextColor(textColorLoading);
+                    break;
 
-            case ERROR:
-                text = textError;
-                iconRes = iconErrorRes;
-                //button.setText("✖ שגיאה");
-                button.setEnabled(true);
-                progressBar.setVisibility(View.GONE);
-                button.setBackgroundColor(bgColorError);
-                button.setTextColor(textColorError);
-                break;
+                case SUCCESS:
+                    text = textSuccess;
+                    iconRes = iconSuccessRes;
+                    //button.setText("✔ הצלחה");
+                    button.setEnabled(false);
+                    progressBar.setVisibility(View.GONE);
+                    button.setBackgroundColor(bgColorSuccess);
+                    button.setTextColor(textColorSuccess);
+                    break;
 
-            case DISABLED:
-                text = textDisabled;
-                iconRes = iconDisabledRes;
-                //button.setText("לא זמין");
-                button.setEnabled(false);
-                button.setAlpha(0.5f);
-                progressBar.setVisibility(View.GONE);
-                button.setBackgroundColor(bgColorDisabled);
-                button.setTextColor(textColorDisabled);
-                break;
-        }
-        button.setText(text);
-        if (iconRes != 0) {
-            button.setCompoundDrawablesWithIntrinsicBounds(iconRes, 0, 0, 0);
-        } else {
-            button.setCompoundDrawables(null, null, null, null);
-        }
+                case ERROR:
+                    text = textError;
+                    iconRes = iconErrorRes;
+                    //button.setText("✖ שגיאה");
+                    button.setEnabled(true);
+                    progressBar.setVisibility(View.GONE);
+                    button.setBackgroundColor(bgColorError);
+                    button.setTextColor(textColorError);
+                    break;
+
+                case DISABLED:
+                    text = textDisabled;
+                    iconRes = iconDisabledRes;
+                    //button.setText("לא זמין");
+                    button.setEnabled(false);
+                    button.setAlpha(0.5f);
+                    progressBar.setVisibility(View.GONE);
+                    button.setBackgroundColor(bgColorDisabled);
+                    button.setTextColor(textColorDisabled);
+                    break;
+            }
+            button.setText(text);
+            if (iconRes != 0) {
+                button.setCompoundDrawablesWithIntrinsicBounds(iconRes, 0, 0, 0);
+            } else {
+                button.setCompoundDrawables(null, null, null, null);
+            }
+
+            Log.d("LOADING_BTN", "UI updated: text=" + text + ", enabled=" + button.isEnabled() + ", progressVisible=" + (progressBar.getVisibility() == View.VISIBLE));
+
+            invalidate();
+            requestLayout();
+        });
     }
     public void setTextForState(ButtonState state, String text) {
         switch (state) {
@@ -176,8 +196,9 @@ public class LoadingButton extends FrameLayout {
             case ERROR: textError = text; break;
             case DISABLED: textDisabled = text; break;
         }
-        updateUI(); // לשינוי בזמן ריצה
-    }
+        if (this.state == state) {
+            updateUI(); // עדכון מיידי אם זה המצב הנוכחי
+        }    }
 
     public void setIconForState(ButtonState state, int drawableResId) {
         switch (state) {
@@ -187,8 +208,9 @@ public class LoadingButton extends FrameLayout {
             case ERROR: iconErrorRes = drawableResId; break;
             case DISABLED: iconDisabledRes = drawableResId; break;
         }
-        updateUI();
-    }
+        if (this.state == state) {
+            updateUI(); // עדכון מיידי אם זה המצב הנוכחי
+        }    }
     public void setBackgroundColorForState(ButtonState state, int color) {
         switch (state) {
             case IDLE: bgColorIdle = color; break;
@@ -197,8 +219,9 @@ public class LoadingButton extends FrameLayout {
             case ERROR: bgColorError = color; break;
             case DISABLED: bgColorDisabled = color; break;
         }
-        updateUI();
-    }
+        if (this.state == state) {
+            updateUI(); // עדכון מיידי אם זה המצב הנוכחי
+        }    }
 
     public void setTextColorForState(ButtonState state, int color) {
         switch (state) {
@@ -208,8 +231,15 @@ public class LoadingButton extends FrameLayout {
             case ERROR: textColorError = color; break;
             case DISABLED: textColorDisabled = color; break;
         }
-        updateUI();
+        if (this.state == state) {
+            updateUI(); // עדכון מיידי אם זה המצב הנוכחי
+        }
     }
-
-
+    // הוספת מתודה לחזרה אוטומטית למצב IDLE
+    public void setStateWithAutoReset(ButtonState newState, long delayMillis) {
+        setState(newState);
+        if (newState != IDLE && newState != ButtonState.LOADING) {
+            postDelayed(() -> setState(IDLE), delayMillis);
+        }
+    }
 }

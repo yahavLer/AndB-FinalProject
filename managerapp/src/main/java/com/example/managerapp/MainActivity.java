@@ -18,6 +18,8 @@ import com.example.common.TaskAdapter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+
+import com.example.fancyviews.OnStateChangeListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -47,12 +49,24 @@ public class MainActivity extends BaseActivity {
 
         initViews();
         addTaskButton.setOnClickListener(v -> {
-            addTaskToFirestore(false);
+            Task task =createTask(false);
+            if (task != null) {
+                addTaskToFirestore(task);
+            }
         });
 
         fancyAddTaskButton.setOnClickListener(v -> {
-            addTaskToFirestore(true);
+            Log.d("MAIN_ACTIVITY", "Fancy button clicked, current state: " + fancyAddTaskButton.getState());
+
+            // רק אם הכפתור במצב IDLE נתחיל את התהליך
+            if (fancyAddTaskButton.getState() == LoadingButton.ButtonState.IDLE) {
+                Task task = createTask(true);
+                if (task != null) {
+                    addSpecialTaskToFirestore(task);
+                }
+            }
         });
+
         exportPdfButton.setOnClickListener(v -> requestCreatePdf());
 
         taskList = new ArrayList<>();
@@ -60,6 +74,41 @@ public class MainActivity extends BaseActivity {
         taskRecycler.setLayoutManager(new LinearLayoutManager(this));
         taskRecycler.setAdapter(adapter);
         listenForTasks();
+    }
+
+    private void addSpecialTaskToFirestore(Task task) {
+        firestore.collection("tasks")
+                .document(task.getId())
+                .set(task)
+                .addOnCompleteListener(taskResult -> {
+                    if (taskResult.isSuccessful()) {
+                        // הצלחה
+                        runOnUiThread(() -> {
+                            fancyAddTaskButton.setState(LoadingButton.ButtonState.SUCCESS);
+                            showToast("המשימה נשמרה בהצלחה!");
+                            // איפוס השדות
+                            taskTitleInput.setText("");
+                            taskDescInput.setText("");
+
+                            // חזרה למצב IDLE אחרי 2 שניות
+                            fancyAddTaskButton.postDelayed(() -> {
+                                fancyAddTaskButton.setState(LoadingButton.ButtonState.IDLE);
+                            }, 2000);
+                        });
+                    } else {
+                        // שגיאה
+                        Exception e = taskResult.getException();
+                        runOnUiThread(() -> {
+                            fancyAddTaskButton.setState(LoadingButton.ButtonState.ERROR);
+                            showToast("שגיאה בשמירה: " + (e != null ? e.getMessage() : "לא ידוע"));
+
+                            // חזרה למצב IDLE אחרי 3 שניות
+                            fancyAddTaskButton.postDelayed(() -> {
+                                fancyAddTaskButton.setState(LoadingButton.ButtonState.IDLE);
+                            }, 3000);
+                        });
+                    }
+                });
     }
 
     @Override
@@ -73,47 +122,49 @@ public class MainActivity extends BaseActivity {
         }
     }
 
-    private void addTaskToFirestore(boolean isSpecial) {
+    private void addTaskToFirestore(Task task) {
+        firestore.collection("tasks")
+                .document(task.getId())
+                .set(task)
+                .addOnSuccessListener(unused -> {
+                    showToast("המשימה נשמרה בהצלחה!");
+                    Log.d("DEBUG", "onSuccess called!");
+                    taskTitleInput.setText("");
+                    taskDescInput.setText("");
+                })
+                .addOnFailureListener(e -> {
+                    showToast("שגיאה בשמירת המשימה");
+                    Log.e("DEBUG", "onFailure called: " + e.getMessage());
+                });
+    }
+
+    private Task createTask(boolean isSpecial) {
         String title = taskTitleInput.getText().toString();
         String desc = taskDescInput.getText().toString();
 
         if (title.isEmpty() || desc.isEmpty()) {
             showToast("נא למלא כותרת ותיאור");
             if (isSpecial) {
-                fancyAddTaskButton.setState(LoadingButton.ButtonState.ERROR);
-                fancyAddTaskButton.postDelayed(() ->
-                        fancyAddTaskButton.setState(LoadingButton.ButtonState.IDLE), 1200);
+                runOnUiThread(() ->
+                        fancyAddTaskButton.setState(LoadingButton.ButtonState.ERROR)
+                );
+                // חזרה למצב IDLE אחרי 2 שניות
+                fancyAddTaskButton.postDelayed(() -> {
+                    fancyAddTaskButton.setState(LoadingButton.ButtonState.IDLE);
+                }, 2000);
             }
-            return;
+            return null; // חזרת null כדי לא להמשיך
         }
-        if (isSpecial) fancyAddTaskButton.setState(LoadingButton.ButtonState.LOADING);
 
+        // הגדרת מצב טעינה רק אם זה כפתור מיוחד
+        if (isSpecial) {
+            fancyAddTaskButton.setState(LoadingButton.ButtonState.LOADING);
+        }
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DAY_OF_MONTH, 2);
         String taskId = String.valueOf(System.currentTimeMillis());
         Task task = new Task(taskId, title, desc, cal.getTime(),isSpecial);
-
-        firestore.collection("tasks")
-                .document(task.getId())
-                .set(task)
-                .addOnSuccessListener(unused -> {
-                    showToast("המשימה נשמרה בהצלחה!");
-                    if (isSpecial) {
-                        fancyAddTaskButton.setState(LoadingButton.ButtonState.SUCCESS);
-                        fancyAddTaskButton.postDelayed(() ->
-                                fancyAddTaskButton.setState(LoadingButton.ButtonState.IDLE), 1200);
-                    }
-                    taskTitleInput.setText("");
-                    taskDescInput.setText("");
-                })
-                .addOnFailureListener(e -> {
-                    showToast("שגיאה בשמירת המשימה");
-                    if (isSpecial) {
-                        fancyAddTaskButton.setState(LoadingButton.ButtonState.ERROR);
-                        fancyAddTaskButton.postDelayed(() ->
-                                fancyAddTaskButton.setState(LoadingButton.ButtonState.IDLE), 1200);
-                    }
-                });
+        return task;
     }
 
     private void initViews() {
