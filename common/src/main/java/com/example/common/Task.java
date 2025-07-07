@@ -10,14 +10,16 @@ public class Task implements Serializable {
     private boolean completed;
     private Date dueDate;
     private boolean isSpecial;
+    private Date createdDate;
 
-    public Task(String id, String title, String description, Date dueDate, boolean isSpecial) {
+    public Task(String id, String title, String description, Date dueDate, boolean isSpecial, Date createdDate) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.dueDate = dueDate;
         this.completed = false;
         this.isSpecial = isSpecial;
+        this.createdDate = createdDate;
     }
     public Task() {
     }
@@ -33,4 +35,9 @@ public class Task implements Serializable {
         isSpecial = special;
     }
     public void setCompleted(boolean completed) { this.completed = completed; }
+    public Date getCreatedDate() { return createdDate; }
+    public void setCreatedDate(Date createdDate) {
+        this.createdDate = createdDate;
+    }
+
 }

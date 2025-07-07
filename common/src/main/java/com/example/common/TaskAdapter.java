@@ -1,5 +1,6 @@
 package com.example.common;
 
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,7 +12,9 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder> {
 
@@ -56,8 +59,21 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         Task task = tasks.get(position);
         holder.title.setText(task.getTitle());
         holder.desc.setText(task.getDescription());
-        SimpleDateFormat format = new SimpleDateFormat("dd/MM/yyyy");
-        holder.date.setText(format.format(task.getDueDate()));
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+
+        if (task.getCreatedDate() != null) {
+            holder.taskCreatedDate.setText("נוצר בתאריך: " + sdf.format(task.getCreatedDate()));
+        }
+
+        if (task.getDueDate() != null) {
+            holder.taskDueDate.setText("יעד סיום: " + sdf.format(task.getDueDate()));
+        }
+
+        if (!task.isCompleted() && task.getDueDate() != null && task.getDueDate().before(new Date())) {
+            holder.itemView.setBackgroundColor(Color.parseColor("#FFCDD2")); // אדום בהיר
+        } else {
+            holder.itemView.setBackgroundColor(Color.TRANSPARENT); // או כל רקע אחר
+        }
 
         if (task.isSpecial()) {
             holder.itemView.setBackgroundResource(R.drawable.special_task_background);
@@ -91,16 +107,17 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     }
 
     static class TaskViewHolder extends RecyclerView.ViewHolder {
-        TextView title, desc, date, status;
+        TextView title, desc, date, status, taskCreatedDate, taskDueDate;
         Button completeButton;
 
         public TaskViewHolder(@NonNull View itemView) {
             super(itemView);
             title = itemView.findViewById(R.id.taskTitle);
             desc = itemView.findViewById(R.id.taskDesc);
-            date = itemView.findViewById(R.id.taskDate);
             status = itemView.findViewById(R.id.taskStatus);
             completeButton = itemView.findViewById(R.id.completeTaskButton);
+            taskCreatedDate = itemView.findViewById(R.id.taskCreatedDate);
+            taskDueDate = itemView.findViewById(R.id.taskDueDate);
         }
     }
 }

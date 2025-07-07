@@ -1,5 +1,6 @@
 package com.example.managerapp;
 
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -15,8 +16,10 @@ import com.example.common.BaseActivity;
 import com.example.common.Task;
 import com.example.common.TaskAdapter;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import com.example.fancyviews.OnStateChangeListener;
@@ -25,8 +28,11 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import com.example.fancyviews.LoadingButton;
 import com.classy.pdflibrary.PdfExporter;
+
+import android.widget.TextView;
 import android.widget.Toast;
 import java.io.File;
+import java.util.Locale;
 
 public class MainActivity extends BaseActivity {
     private static final int CREATE_PDF_REQUEST_CODE = 1001;
@@ -40,6 +46,10 @@ public class MainActivity extends BaseActivity {
 
     private LoadingButton fancyAddTaskButton;
     private Button exportPdfButton;
+
+    private TextView dueDateText ;
+    private final Calendar calendar = Calendar.getInstance();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,12 +78,27 @@ public class MainActivity extends BaseActivity {
         });
 
         exportPdfButton.setOnClickListener(v -> requestCreatePdf());
-
+        dueDateText.setOnClickListener(v -> openCalendarDialog());
         taskList = new ArrayList<>();
         adapter = new TaskAdapter(taskList, false, task -> {});
         taskRecycler.setLayoutManager(new LinearLayoutManager(this));
         taskRecycler.setAdapter(adapter);
         listenForTasks();
+    }
+
+    private void openCalendarDialog() {
+        DatePickerDialog datePickerDialog = new DatePickerDialog(MainActivity.this,
+                (view, year, month, dayOfMonth) -> {
+                    calendar.set(year, month, dayOfMonth);
+                    Date selectedDate = calendar.getTime();
+                    SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+                    dueDateText.setText("תאריך יעד: " + sdf.format(selectedDate));
+                    dueDateText.setTag(selectedDate); // נשמור את התאריך באובייקט עצמו
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH));
+        datePickerDialog.show();
     }
 
     private void addSpecialTaskToFirestore(Task task) {
@@ -141,7 +166,11 @@ public class MainActivity extends BaseActivity {
     private Task createTask(boolean isSpecial) {
         String title = taskTitleInput.getText().toString();
         String desc = taskDescInput.getText().toString();
-
+        Date now = new Date();
+        Date dueDate = (Date) dueDateText.getTag();
+        if (dueDate == null) {
+            dueDate = now; // אם לא נבחר תאריך, נשתמש בתאריך הנוכחי
+        }
         if (title.isEmpty() || desc.isEmpty()) {
             showToast("נא למלא כותרת ותיאור");
             if (isSpecial) {
@@ -160,10 +189,9 @@ public class MainActivity extends BaseActivity {
         if (isSpecial) {
             fancyAddTaskButton.setState(LoadingButton.ButtonState.LOADING);
         }
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_MONTH, 2);
+
         String taskId = String.valueOf(System.currentTimeMillis());
-        Task task = new Task(taskId, title, desc, cal.getTime(),isSpecial);
+        Task task = new Task(taskId, title, desc, now,isSpecial,dueDate);
         return task;
     }
 
@@ -174,6 +202,7 @@ public class MainActivity extends BaseActivity {
         taskRecycler = findViewById(R.id.managerTaskRecycler);
         fancyAddTaskButton = findViewById(R.id.fancyAddTaskButton);
         exportPdfButton = findViewById(R.id.exportPdfButton);
+        dueDateText = findViewById(R.id.dueDateText);
     }
 
     private void listenForTasks() {
