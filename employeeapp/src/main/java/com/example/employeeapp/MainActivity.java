@@ -1,8 +1,12 @@
 package com.example.employeeapp;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Button;
 
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -23,11 +27,14 @@ import com.classy.pdflibrary.PdfExporter;
 
 
 public class MainActivity extends BaseActivity {
+    private static final int CREATE_PDF_REQUEST_CODE = 1001;
+
     private FirebaseFirestore firestore;
 
     private RecyclerView recyclerView;
     private TaskAdapter adapter;
     private List<Task> taskList;
+    private Button exportPdfButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,9 +43,9 @@ public class MainActivity extends BaseActivity {
         setContentView(R.layout.activity_main);
 
         firestore = FirebaseFirestore.getInstance();
-//        listenForTasks();
 
         recyclerView = findViewById(R.id.taskRecyclerView);
+        exportPdfButton = findViewById(R.id.exportPdfButton);
         taskList = new ArrayList<>();
         adapter = new TaskAdapter(taskList, true, task -> {
             FirebaseFirestore.getInstance().collection("tasks")
@@ -55,9 +62,47 @@ public class MainActivity extends BaseActivity {
         });
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
+        exportPdfButton.setOnClickListener(v -> requestCreatePdf());
 
         listenForTasks();
     }
+
+    private void requestCreatePdf() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.setType("application/pdf");
+        intent.putExtra(Intent.EXTRA_TITLE, "tasks_list.pdf");
+        startActivityForResult(intent, CREATE_PDF_REQUEST_CODE);
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == CREATE_PDF_REQUEST_CODE && resultCode == RESULT_OK) {
+            if (data != null && data.getData() != null) {
+                Uri pdfUri = data.getData();
+                exportTasksTableToPdf(pdfUri);
+            }
+        }
+    }
+
+    private void exportTasksTableToPdf(Uri pdfUri) {
+        List<PdfExporter.TaskInfo> infoList = convertTasksToInfoList(taskList); // taskList = כל המשימות!
+        boolean success = PdfExporter.exportTasksTableToPdf(this, infoList, pdfUri);
+        if (success) {
+            showToast("הקובץ נשמר בהצלחה!");
+            PdfExporter.openPdf(this, pdfUri);
+        }
+    }
+
+    private List<PdfExporter.TaskInfo> convertTasksToInfoList(List<Task> tasks) {
+        List<PdfExporter.TaskInfo> infoList = new ArrayList<>();
+        for (Task t : tasks) {
+            // דוגמה להמרת Date ל־String
+            String dateStr = android.text.format.DateFormat.format("dd/MM/yyyy", t.getDueDate()).toString();
+            infoList.add(new PdfExporter.TaskInfo(t.getTitle(), t.getDescription(), dateStr));
+        }
+        return infoList;
+    }
+
 
     private void listenForTasks() {
         firestore.collection("tasks")
@@ -86,4 +131,5 @@ public class MainActivity extends BaseActivity {
                     Log.d("EMPLOYEE", "סך כל המשימות: " + taskList.size());
                 });
     }
+
 }
