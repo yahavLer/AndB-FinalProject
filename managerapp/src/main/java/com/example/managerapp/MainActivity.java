@@ -249,8 +249,6 @@ public class MainActivity extends BaseActivity {
         startActivityForResult(intent, 3003);  // מזהה שונה
     }
 
-
-
     private void exportDynamicTasksToPdf(Uri uri) {
         List<PdfExporter.PdfRow> rows = new ArrayList<>();
         for (Task t : taskList) {

@@ -5,7 +5,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.view.View;
@@ -59,7 +61,7 @@ public class PdfExporter {
         for (int i = 0; i < adapter.getItemCount(); i++) {
             RecyclerView.ViewHolder holder = adapter.createViewHolder(recyclerView, adapter.getItemViewType(i));
             adapter.onBindViewHolder(holder, i);
-
+            holder.itemView.setLayoutDirection(View.LAYOUT_DIRECTION_LOCALE); // יתאים לעברית ואנגלית
             holder.itemView.measure(
                     View.MeasureSpec.makeMeasureSpec(pageWidth - 2 * margin, View.MeasureSpec.EXACTLY),
                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
@@ -68,10 +70,10 @@ public class PdfExporter {
             Bitmap originalBitmap = Bitmap.createBitmap(holder.itemView.getMeasuredWidth(), holder.itemView.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
             Canvas cardCanvas = new Canvas(originalBitmap);
             holder.itemView.draw(cardCanvas);
-
             int scaledWidth = (int) (originalBitmap.getWidth() * scale);
             int scaledHeight = (int) (originalBitmap.getHeight() * scale);
             Bitmap scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, scaledWidth, scaledHeight, true);
+            int centerX = (pageWidth - scaledWidth) / 2;
 
             if (page == null || y + scaledHeight  > pageHeight - margin) {
                 // עמוד חדש
@@ -84,8 +86,29 @@ public class PdfExporter {
                 y = margin;
             }
 
-            canvas.drawBitmap(scaledBitmap, margin, y, paint);
-            y += scaledHeight + 12; // רווח בין כרטיסים
+            // רקע לבן עם פינות מעוגלות
+            int radius = 20;
+            Paint backgroundPaint = new Paint();
+            backgroundPaint.setAntiAlias(true);
+            backgroundPaint.setColor(Color.WHITE);
+
+            // גבול
+            Paint borderPaint = new Paint();
+            borderPaint.setColor(Color.LTGRAY);
+            borderPaint.setStyle(Paint.Style.STROKE);
+            borderPaint.setStrokeWidth(2f);
+            borderPaint.setAntiAlias(true);
+
+            RectF rect = new RectF(centerX, y, centerX + scaledWidth, y + scaledHeight);
+            canvas.drawRoundRect(rect, radius, radius, backgroundPaint);
+            canvas.drawRoundRect(rect, radius, radius, borderPaint);
+
+            // ציור הכרטיס עצמו
+            Paint bitmapPaint = new Paint();
+            bitmapPaint.setFilterBitmap(true); // איכות גבוהה
+            canvas.drawBitmap(scaledBitmap, centerX, y, bitmapPaint);
+
+            y += scaledHeight + 16;
         }
 
         if (page != null) {

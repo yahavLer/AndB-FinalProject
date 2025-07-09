@@ -39,6 +39,7 @@ public class MainActivity extends BaseActivity {
     private TaskAdapter adapter;
     private List<Task> taskList;
     private Button exportPdfButton;
+    private Button exportPhotoToPdfButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,9 +48,7 @@ public class MainActivity extends BaseActivity {
         setContentView(R.layout.activity_main);
 
         firestore = FirebaseFirestore.getInstance();
-
-        recyclerView = findViewById(R.id.taskRecyclerView);
-        exportPdfButton = findViewById(R.id.exportPdfButton);
+        initViews();
         taskList = new ArrayList<>();
         adapter = new TaskAdapter(taskList, true, task -> {
             FirebaseFirestore.getInstance().collection("tasks")
@@ -67,8 +66,14 @@ public class MainActivity extends BaseActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
         exportPdfButton.setOnClickListener(v -> requestCreatePdf());
-
+        exportPhotoToPdfButton.setOnClickListener(v -> requestCreateScreenshotPdf());
         listenForTasks();
+    }
+
+    private void initViews() {
+        recyclerView = findViewById(R.id.taskRecyclerView);
+        exportPdfButton = findViewById(R.id.exportPdfButton);
+        exportPhotoToPdfButton = findViewById(R.id.exportAsPhotoToPdfButton);
     }
 
     private void requestCreatePdf() {
@@ -77,13 +82,23 @@ public class MainActivity extends BaseActivity {
         intent.putExtra(Intent.EXTRA_TITLE, "tasks_list.pdf");
         startActivityForResult(intent, CREATE_PDF_REQUEST_CODE);
     }
+
+    private void requestCreateScreenshotPdf() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.setType("application/pdf");
+        intent.putExtra(Intent.EXTRA_TITLE, "tasks_cards.pdf");
+        startActivityForResult(intent, 3003);  // מזהה שונה
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == CREATE_PDF_REQUEST_CODE && resultCode == RESULT_OK) {
-            if (data != null && data.getData() != null) {
-                Uri pdfUri = data.getData();
+        if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+            Uri pdfUri = data.getData();
+            if (requestCode == CREATE_PDF_REQUEST_CODE) {
                 exportTasksTableToPdf(pdfUri);
+            } else if (requestCode == 3003) {
+                exportTaskCardsToPdf(pdfUri);
             }
         }
     }
@@ -91,6 +106,7 @@ public class MainActivity extends BaseActivity {
     private void exportTasksTableToPdf(Uri pdfUri) {
         exportDynamicTasksToPdf(pdfUri); // קריאה לפונקציה החדשה
     }
+
     private void exportDynamicTasksToPdf(Uri uri) {
         List<PdfExporter.PdfRow> rows = new ArrayList<>();
         for (Task t : taskList) {
@@ -109,13 +125,20 @@ public class MainActivity extends BaseActivity {
             PdfExporter.openPdf(this, uri);
         }
     }
+
     private String formatDate(Date date) {
         return date != null ? android.text.format.DateFormat.format("dd/MM/yyyy", date).toString() : "לא ידוע";
     }
 
-
-
-
+    private void exportTaskCardsToPdf(Uri pdfUri) {
+        boolean success = PdfExporter.exportTaskCardsToPdf(this, recyclerView, pdfUri);
+        if (success) {
+            showToast("צילום המסך נשמר כ-PDF בהצלחה!");
+            PdfExporter.openPdf(this, pdfUri);
+        } else {
+            showToast("שגיאה ביצוא צילום מסך ל-PDF");
+        }
+    }
 
     private void listenForTasks() {
         firestore.collection("tasks")
