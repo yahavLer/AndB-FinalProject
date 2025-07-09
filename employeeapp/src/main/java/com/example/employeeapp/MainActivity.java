@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.example.common.TaskExportUtils;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -104,40 +105,15 @@ public class MainActivity extends BaseActivity {
     }
 
     private void exportTasksTableToPdf(Uri pdfUri) {
-        exportDynamicTasksToPdf(pdfUri); // קריאה לפונקציה החדשה
+        exportDynamicTasksToPdf(pdfUri);
     }
 
     private void exportDynamicTasksToPdf(Uri uri) {
-        List<PdfExporter.PdfRow> rows = new ArrayList<>();
-        for (Task t : taskList) {
-            Map<String, String> data = new LinkedHashMap<>();
-            data.put("כותרת", t.getTitle());
-            data.put("תיאור", t.getDescription());
-            data.put("סטטוס", t.isCompleted() ? "בוצעה" : "לא בוצעה");
-            data.put("נוצר בתאריך", formatDate(t.getCreatedDate()));
-            data.put("יעד סיום", formatDate(t.getDueDate()));
-            rows.add(new PdfExporter.PdfRow(data));
-        }
-
-        boolean success = PdfExporter.exportDynamicTableToPdf(this, rows, uri);
-        if (success) {
-            showToast("PDF נוצר בהצלחה!");
-            PdfExporter.openPdf(this, uri);
-        }
-    }
-
-    private String formatDate(Date date) {
-        return date != null ? android.text.format.DateFormat.format("dd/MM/yyyy", date).toString() : "לא ידוע";
+        TaskExportUtils.exportTasksAsTable(this, taskList, uri);
     }
 
     private void exportTaskCardsToPdf(Uri pdfUri) {
-        boolean success = PdfExporter.exportTaskCardsToPdf(this, recyclerView, pdfUri);
-        if (success) {
-            showToast("צילום המסך נשמר כ-PDF בהצלחה!");
-            PdfExporter.openPdf(this, pdfUri);
-        } else {
-            showToast("שגיאה ביצוא צילום מסך ל-PDF");
-        }
+        TaskExportUtils.exportTasksAsCards(this, recyclerView, pdfUri);
     }
 
     private void listenForTasks() {

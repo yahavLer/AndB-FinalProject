@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import com.example.common.TaskExportUtils;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -249,40 +250,11 @@ public class MainActivity extends BaseActivity {
         startActivityForResult(intent, 3003);  // מזהה שונה
     }
 
-    private void exportDynamicTasksToPdf(Uri uri) {
-        List<PdfExporter.PdfRow> rows = new ArrayList<>();
-        for (Task t : taskList) {
-            Map<String, String> data = new LinkedHashMap<>();
-            data.put("כותרת", t.getTitle());
-            data.put("תיאור", t.getDescription());
-            data.put("סטטוס", t.isCompleted() ? "בוצעה" : "לא בוצעה");
-            data.put("נוצר בתאריך", formatDate(t.getCreatedDate()));
-            data.put("יעד סיום", formatDate(t.getDueDate()));
-            rows.add(new PdfExporter.PdfRow(data));
-        }
-
-        boolean success = PdfExporter.exportDynamicTableToPdf(this, rows, uri);
-        if (success) {
-            showToast("PDF נוצר בהצלחה!");
-            PdfExporter.openPdf(this, uri);
-        }
-    }
-
-    private String formatDate(Date date) {
-        return date != null ? android.text.format.DateFormat.format("dd/MM/yyyy", date).toString() : "לא ידוע";
-    }
-
     private void exportTasksTableToPdf(Uri pdfUri) {
-        exportDynamicTasksToPdf(pdfUri); // קריאה לפונקציה החדשה
+        TaskExportUtils.exportTasksAsTable(this, taskList, pdfUri);
     }
 
     private void exportTaskCardsToPdf(Uri pdfUri) {
-        boolean success = PdfExporter.exportTaskCardsToPdf(this, taskRecycler, pdfUri);
-        if (success) {
-            showToast("צילום המסך נשמר כ-PDF בהצלחה!");
-            PdfExporter.openPdf(this, pdfUri);
-        } else {
-            showToast("שגיאה ביצוא צילום מסך ל-PDF");
-        }
+        TaskExportUtils.exportTasksAsCards(this, taskRecycler, pdfUri); // או taskRecycler
     }
 }
