@@ -2,6 +2,7 @@ package com.example.managerapp;
 
 import android.app.DatePickerDialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -20,9 +21,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 
-import com.example.fancyviews.OnStateChangeListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -30,9 +31,9 @@ import com.example.fancyviews.LoadingButton;
 import com.classy.pdflibrary.PdfExporter;
 
 import android.widget.TextView;
-import android.widget.Toast;
-import java.io.File;
+
 import java.util.Locale;
+import java.util.Map;
 
 public class MainActivity extends BaseActivity {
     private static final int CREATE_PDF_REQUEST_CODE = 1001;
@@ -45,8 +46,8 @@ public class MainActivity extends BaseActivity {
     private List<Task> taskList;
 
     private LoadingButton fancyAddTaskButton;
-    private Button exportPdfButton;
-
+    private Button exportTablePdfButton;
+    private Button exportPhotoToPdfButton;
     private TextView dueDateText ;
     private final Calendar calendar = Calendar.getInstance();
 
@@ -64,7 +65,7 @@ public class MainActivity extends BaseActivity {
                 addTaskToFirestore(task);
             }
         });
-
+        fancyAddTaskButton.setTextForState(LoadingButton.ButtonState.IDLE, "הוסף משימה מיוחדת");
         fancyAddTaskButton.setOnClickListener(v -> {
             Log.d("MAIN_ACTIVITY", "Fancy button clicked, current state: " + fancyAddTaskButton.getState());
 
@@ -77,7 +78,8 @@ public class MainActivity extends BaseActivity {
             }
         });
 
-        exportPdfButton.setOnClickListener(v -> requestCreatePdf());
+        exportTablePdfButton.setOnClickListener(v -> requestCreatePdf());
+        exportPhotoToPdfButton.setOnClickListener(v -> requestCreateScreenshotPdf());
         dueDateText.setOnClickListener(v -> openCalendarDialog());
         taskList = new ArrayList<>();
         adapter = new TaskAdapter(taskList, false, task -> {});
@@ -139,10 +141,12 @@ public class MainActivity extends BaseActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == CREATE_PDF_REQUEST_CODE && resultCode == RESULT_OK) {
-            if (data != null && data.getData() != null) {
-                Uri pdfUri = data.getData();
+        if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+            Uri pdfUri = data.getData();
+            if (requestCode == CREATE_PDF_REQUEST_CODE) {
                 exportTasksTableToPdf(pdfUri);
+            } else if (requestCode == 3003) {
+                exportTaskCardsToPdf(pdfUri);
             }
         }
     }
@@ -156,6 +160,7 @@ public class MainActivity extends BaseActivity {
                     Log.d("DEBUG", "onSuccess called!");
                     taskTitleInput.setText("");
                     taskDescInput.setText("");
+                    dueDateText.setText("תאריך יעד: לא נבחר");
                 })
                 .addOnFailureListener(e -> {
                     showToast("שגיאה בשמירת המשימה");
@@ -191,7 +196,7 @@ public class MainActivity extends BaseActivity {
         }
 
         String taskId = String.valueOf(System.currentTimeMillis());
-        Task task = new Task(taskId, title, desc, now,isSpecial,dueDate);
+        Task task = new Task(taskId, title, desc,dueDate ,isSpecial,now);
         return task;
     }
 
@@ -201,8 +206,9 @@ public class MainActivity extends BaseActivity {
         addTaskButton = findViewById(R.id.addTaskButton);
         taskRecycler = findViewById(R.id.managerTaskRecycler);
         fancyAddTaskButton = findViewById(R.id.fancyAddTaskButton);
-        exportPdfButton = findViewById(R.id.exportPdfButton);
+        exportTablePdfButton = findViewById(R.id.exportAsTableToPdfButton);
         dueDateText = findViewById(R.id.dueDateText);
+        exportPhotoToPdfButton = findViewById(R.id.exportAsPhotoToPdfButton);
     }
 
     private void listenForTasks() {
@@ -236,23 +242,49 @@ public class MainActivity extends BaseActivity {
         startActivityForResult(intent, CREATE_PDF_REQUEST_CODE);
     }
 
-    private List<PdfExporter.TaskInfo> convertTasksToInfoList(List<Task> tasks) {
-        List<PdfExporter.TaskInfo> infoList = new ArrayList<>();
-        for (Task t : tasks) {
-            // דוגמה להמרת Date ל־String
-            String dateStr = android.text.format.DateFormat.format("dd/MM/yyyy", t.getDueDate()).toString();
-            infoList.add(new PdfExporter.TaskInfo(t.getTitle(), t.getDescription(), dateStr));
+    private void requestCreateScreenshotPdf() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.setType("application/pdf");
+        intent.putExtra(Intent.EXTRA_TITLE, "tasks_cards.pdf");
+        startActivityForResult(intent, 3003);  // מזהה שונה
+    }
+
+
+
+    private void exportDynamicTasksToPdf(Uri uri) {
+        List<PdfExporter.PdfRow> rows = new ArrayList<>();
+        for (Task t : taskList) {
+            Map<String, String> data = new LinkedHashMap<>();
+            data.put("כותרת", t.getTitle());
+            data.put("תיאור", t.getDescription());
+            data.put("סטטוס", t.isCompleted() ? "בוצעה" : "לא בוצעה");
+            data.put("נוצר בתאריך", formatDate(t.getCreatedDate()));
+            data.put("יעד סיום", formatDate(t.getDueDate()));
+            rows.add(new PdfExporter.PdfRow(data));
         }
-        return infoList;
+
+        boolean success = PdfExporter.exportDynamicTableToPdf(this, rows, uri);
+        if (success) {
+            showToast("PDF נוצר בהצלחה!");
+            PdfExporter.openPdf(this, uri);
+        }
+    }
+
+    private String formatDate(Date date) {
+        return date != null ? android.text.format.DateFormat.format("dd/MM/yyyy", date).toString() : "לא ידוע";
     }
 
     private void exportTasksTableToPdf(Uri pdfUri) {
-        List<PdfExporter.TaskInfo> infoList = convertTasksToInfoList(taskList); // taskList = כל המשימות!
-        boolean success = PdfExporter.exportTasksTableToPdf(this, infoList, pdfUri);
-        if (success) {
-            showToast("הקובץ נשמר בהצלחה!");
-            PdfExporter.openPdf(this, pdfUri);
-        }
+        exportDynamicTasksToPdf(pdfUri); // קריאה לפונקציה החדשה
     }
 
+    private void exportTaskCardsToPdf(Uri pdfUri) {
+        boolean success = PdfExporter.exportTaskCardsToPdf(this, taskRecycler, pdfUri);
+        if (success) {
+            showToast("צילום המסך נשמר כ-PDF בהצלחה!");
+            PdfExporter.openPdf(this, pdfUri);
+        } else {
+            showToast("שגיאה ביצוא צילום מסך ל-PDF");
+        }
+    }
 }

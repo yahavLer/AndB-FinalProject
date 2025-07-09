@@ -66,11 +66,28 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <Button
-        android:id="@+id/exportPdfButton"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="ייצא PDF"/>
+        android:orientation="horizontal"
+        android:gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp">
+
+        <Button
+            android:id="@+id/exportAsTableToPdfButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ייצא כטבלה ל PDF"
+            android:layout_marginEnd="8dp"/>
+
+        <Button
+            android:id="@+id/exportAsPhotoToPdfButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ייצא כתמונה ל PDF"/>
+    </LinearLayout>
+
 
 
 </LinearLayout>

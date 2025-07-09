@@ -11,43 +11,17 @@ import android.net.Uri;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.recyclerview.widget.RecyclerView;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class PdfExporter {
-
-    /**
-     * מייצא View כ־PDF ומחזיר true אם הצליח, false אם נכשל.
-     * @param context Context
-     * @param view ה־View שרוצים להמיר
-     * @param pdfUri ה־Uri אליו יישמר ה־PDF (מה־ACTION_CREATE_DOCUMENT)
-     * @return true/false
-     */
-    public static boolean exportViewToPdf(Context context, View view, Uri pdfUri) {
-        try {
-            Bitmap bitmap = getBitmapFromView(view);
-
-            PdfDocument document = new PdfDocument();
-            PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(
-                    bitmap.getWidth(), bitmap.getHeight(), 1).create();
-            PdfDocument.Page page = document.startPage(pageInfo);
-            Canvas canvas = page.getCanvas();
-            canvas.drawBitmap(bitmap, 0, 0, null);
-            document.finishPage(page);
-
-            OutputStream out = context.getContentResolver().openOutputStream(pdfUri);
-            document.writeTo(out);
-            document.close();
-            if (out != null) out.close();
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(context, "שגיאה ביצוא PDF", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-    }
 
     /**
      * פותח קובץ PDF (קורא) – יש לשלוח Uri חוקי.
@@ -65,112 +39,62 @@ public class PdfExporter {
         }
     }
 
-    // יצירת Bitmap מתוך View (פנימי)
-    private static Bitmap getBitmapFromView(View view) {
-        Bitmap returnedBitmap = Bitmap.createBitmap(
-                view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(returnedBitmap);
-        view.draw(canvas);
-        return returnedBitmap;
-    }
+    public static boolean exportTaskCardsToPdf(Context context, RecyclerView recyclerView, Uri pdfUri) {
+        RecyclerView.Adapter adapter = recyclerView.getAdapter();
+        if (adapter == null) return false;
 
-    /**
-     * ייצוא רשימת משימות כטבלה ב־PDF
-     * @param context הקשר
-     * @param tasks רשימת משימות (TaskInfo - מחלקה פשוטה עם שדות של המשימה)
-     * @param pdfUri מיקום לשמירה
-     * @return true/false
-     */
-    public static boolean exportTasksTableToPdf(Context context, List<TaskInfo> tasks, Uri pdfUri) {
-        int pageWidth = 595; // A4 ב־72 dpi
-        int pageHeight = 842;
-        int startX = 30, startY = 60;
-        int minRowHeight = 40;
-        int padding = 8;
+        int pageWidth = 595;  // A4 רוחב ב־72 dpi
+        int pageHeight = 842; // A4 גובה
+        int margin = 24;
+        int y = margin;
 
-        // רוחב עמודות מתאים יותר
-        int col1Width = 140; // שם משימה (הוגדל)
-        int col2Width = 280; // תיאור (הוגדל משמעותית)
-        int col3Width = 100; // דדליין (קוטן קצת)
-
+        float scale = 0.45f; // הקטנה ל־60% כדי להכניס כמה כרטיסים
+        Paint paint = new Paint();
+        paint.setFilterBitmap(true); // חדות טובה יותר בביטמאפ מוקטן
 
         PdfDocument document = new PdfDocument();
-        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
-        PdfDocument.Page page = document.startPage(pageInfo);
-        Canvas canvas = page.getCanvas();
+        PdfDocument.Page page = null;
+        Canvas canvas = null;
 
-        Paint paint = new Paint();
-        paint.setTextSize(16);
-        paint.setFakeBoldText(true);
-        paint.setAntiAlias(true);
+        for (int i = 0; i < adapter.getItemCount(); i++) {
+            RecyclerView.ViewHolder holder = adapter.createViewHolder(recyclerView, adapter.getItemViewType(i));
+            adapter.onBindViewHolder(holder, i);
 
-        // Header row
-        int y = startY;
-        canvas.drawText("שם משימה", startX + padding, y, paint);
-        canvas.drawText("תיאור", startX + col1Width + padding, y, paint);
-        canvas.drawText("דדליין", startX + col1Width + col2Width + padding, y, paint);
+            holder.itemView.measure(
+                    View.MeasureSpec.makeMeasureSpec(pageWidth - 2 * margin, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            holder.itemView.layout(0, 0, holder.itemView.getMeasuredWidth(), holder.itemView.getMeasuredHeight());
 
-        // קווים אנכיים לכותרת
-        paint.setStrokeWidth(1);
-        canvas.drawLine(startX, y - 20, startX, y + 10, paint);
-        canvas.drawLine(startX + col1Width, y - 20, startX + col1Width, y + 10, paint);
-        canvas.drawLine(startX + col1Width + col2Width, y - 20, startX + col1Width + col2Width, y + 10, paint);
-        canvas.drawLine(startX + col1Width + col2Width + col3Width, y - 20, startX + col1Width + col2Width + col3Width, y + 10, paint);
+            Bitmap originalBitmap = Bitmap.createBitmap(holder.itemView.getMeasuredWidth(), holder.itemView.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
+            Canvas cardCanvas = new Canvas(originalBitmap);
+            holder.itemView.draw(cardCanvas);
 
-        // קו מתחת לכותרת
-        paint.setStrokeWidth(2);
-        canvas.drawLine(startX, y + 12, startX + col1Width + col2Width + col3Width, y + 12, paint);
+            int scaledWidth = (int) (originalBitmap.getWidth() * scale);
+            int scaledHeight = (int) (originalBitmap.getHeight() * scale);
+            Bitmap scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, scaledWidth, scaledHeight, true);
 
-        paint.setFakeBoldText(false);
-        paint.setTextSize(14);
-        y += minRowHeight;
-
-        // Rows
-        for (TaskInfo task : tasks) {
-            int rowStartY = y;
-
-            // חישוב גובה השורה הנדרש
-            List<String> titleLines = wrapText(task.title, col1Width - (padding * 2), paint);
-            List<String> descLines = wrapText(task.desc, col2Width - (padding * 2), paint);
-            List<String> deadlineLines = wrapText(task.deadline, col3Width - (padding * 2), paint);
-
-            int maxLines = Math.max(titleLines.size(), Math.max(descLines.size(), deadlineLines.size()));
-            int actualRowHeight = Math.max(minRowHeight, maxLines * 20 + padding);
-
-            // בדיקה אם השורה תחרג מהעמוד
-            if (y + actualRowHeight > pageHeight - 40) {
-                document.finishPage(page);
+            if (page == null || y + scaledHeight  > pageHeight - margin) {
+                // עמוד חדש
+                if (page != null) {
+                    document.finishPage(page);
+                }
+                PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, (i + 1)).create();
                 page = document.startPage(pageInfo);
                 canvas = page.getCanvas();
-                y = startY + minRowHeight;
-                rowStartY = y;
+                y = margin;
             }
 
-            // ציור קווים אנכיים לשורה
-            paint.setStrokeWidth(1);
-            canvas.drawLine(startX, rowStartY - minRowHeight + 12, startX, rowStartY + actualRowHeight - minRowHeight + 12, paint);
-            canvas.drawLine(startX + col1Width, rowStartY - minRowHeight + 12, startX + col1Width, rowStartY + actualRowHeight - minRowHeight + 12, paint);
-            canvas.drawLine(startX + col1Width + col2Width, rowStartY - minRowHeight + 12, startX + col1Width + col2Width, rowStartY + actualRowHeight - minRowHeight + 12, paint);
-            canvas.drawLine(startX + col1Width + col2Width + col3Width, rowStartY - minRowHeight + 12, startX + col1Width + col2Width + col3Width, rowStartY + actualRowHeight - minRowHeight + 12, paint);
-
-            // ציור קו אופקי מתחת לשורה
-            canvas.drawLine(startX, rowStartY + actualRowHeight - minRowHeight + 12, startX + col1Width + col2Width + col3Width, rowStartY + actualRowHeight - minRowHeight + 12, paint);
-
-            // כתיבת הטקסט
-            drawMultilineText(canvas, titleLines, startX + padding, y, paint);
-            drawMultilineText(canvas, descLines, startX + col1Width + padding, y, paint);
-            drawMultilineText(canvas, deadlineLines, startX + col1Width + col2Width + padding, y, paint);
-
-            y += actualRowHeight;
+            canvas.drawBitmap(scaledBitmap, margin, y, paint);
+            y += scaledHeight + 12; // רווח בין כרטיסים
         }
-        document.finishPage(page);
 
-        // כתיבה לקובץ
-        try {
-            OutputStream out = context.getContentResolver().openOutputStream(pdfUri);
+        if (page != null) {
+            document.finishPage(page);
+        }
+
+        try (OutputStream out = context.getContentResolver().openOutputStream(pdfUri)) {
             document.writeTo(out);
             document.close();
-            if (out != null) out.close();
             return true;
         } catch (IOException e) {
             e.printStackTrace();
@@ -178,6 +102,117 @@ public class PdfExporter {
             return false;
         }
     }
+
+
+    /**
+     * ייצוא רשימת משימות כטבלה ב־PDF
+     * @param context הקשר
+     * @param pdfUri מיקום לשמירה
+     * @return true/false
+     */
+    public static boolean exportDynamicTableToPdf(Context context, List<PdfRow> rows, Uri pdfUri) {
+        if (rows == null || rows.isEmpty()) return false;
+
+        Set<String> headers = rows.get(0).getData().keySet();
+
+        int pageWidth = 595;
+        int pageHeight = 842;
+        int startX = 30, startY = 60;
+        int padding = 8;
+        int columnWidth = (pageWidth - 2 * startX) / headers.size();
+        int minRowHeight = 40;
+
+        PdfDocument document = new PdfDocument();
+        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
+        PdfDocument.Page page = document.startPage(pageInfo);
+        Canvas canvas = page.getCanvas();
+
+        Paint paint = new Paint();
+        paint.setTextSize(14);
+        paint.setFakeBoldText(true);
+        paint.setAntiAlias(true);
+
+        int x = startX;
+        int y = startY;
+
+        // ציור כותרות
+        for (String header : headers) {
+            canvas.drawText(header, x + padding, y, paint);
+            x += columnWidth;
+        }
+
+        // קו מתחת לכותרות
+        y += minRowHeight;
+        paint.setStrokeWidth(2);
+        canvas.drawLine(startX, y - 15, startX + columnWidth * headers.size(), y - 15, paint);
+
+        paint.setFakeBoldText(false);
+        paint.setTextSize(12);
+
+        // ציור שורות
+        for (PdfRow row : rows) {
+            x = startX;
+
+            // שלב 1: חשב את כל השורות מראש לכל עמודה
+            Map<String, List<String>> rowLines = new LinkedHashMap<>();
+            int maxLines = 1;
+            for (String key : headers) {
+                String value = row.getData().getOrDefault(key, "");
+                List<String> lines = wrapText(value, columnWidth - 2 * padding, paint);
+                rowLines.put(key, lines);
+                if (lines.size() > maxLines) {
+                    maxLines = lines.size();
+                }
+            }
+
+            // שלב 2: חשב את הגובה האמיתי לשורה הזו
+            int rowHeight = maxLines * 20 + 10;
+
+            // שלב 3: בדוק אם צריך דף חדש
+            if (y + rowHeight > pageHeight - 60) {
+                document.finishPage(page);
+                page = document.startPage(pageInfo);
+                canvas = page.getCanvas();
+                y = startY;
+            }
+
+            // שלב 4: כתיבת כל עמודה בשורה הזו
+            x = startX;
+            for (String key : headers) {
+                List<String> lines = rowLines.get(key);
+                drawMultilineText(canvas, lines, x + padding, y, paint);
+                x += columnWidth;
+            }
+
+            // שלב 5: ציור קווים אנכיים בין עמודות
+            int baselinePadding = 10;
+            x = startX;
+            paint.setStrokeWidth(1);
+            for (int i = 0; i <= headers.size(); i++) {
+                canvas.drawLine(x, y - 15, x, y + rowHeight - baselinePadding, paint);
+                x += columnWidth;
+            }
+
+            // שלב 6: ציור קו אופקי מתחת לשורה
+            canvas.drawLine(startX, y + rowHeight - baselinePadding, startX + columnWidth * headers.size(), y + rowHeight - baselinePadding, paint);
+
+            // שלב 7: עדכון Y לשורה הבאה
+            y += rowHeight;
+        }
+
+        document.finishPage(page);
+
+        try (OutputStream out = context.getContentResolver().openOutputStream(pdfUri)) {
+            document.writeTo(out);
+            document.close();
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(context, "שגיאה ביצוא PDF", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+    }
+
 
     /**
      * פיצול טקסט לשורות מרובות בהתאם לרוחב העמודה
@@ -247,13 +282,15 @@ public class PdfExporter {
         }
     }
 
-    // מחלקה פשוטה להעברת נתוני משימה (בלי קשר למחלקת Task שלך)
-    public static class TaskInfo {
-        public String title, desc, deadline;
-        public TaskInfo(String title, String desc, String deadline) {
-            this.title = title;
-            this.desc = desc;
-            this.deadline = deadline;
+    public static class PdfRow {
+        private final Map<String, String> data;
+
+        public PdfRow(Map<String, String> data) {
+            this.data = new LinkedHashMap<>(data); // שמירת סדר העמודות
+        }
+
+        public Map<String, String> getData() {
+            return data;
         }
     }
 }

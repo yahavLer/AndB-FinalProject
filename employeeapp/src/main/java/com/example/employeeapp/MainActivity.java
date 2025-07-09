@@ -16,7 +16,11 @@ import com.example.common.TaskAdapter;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -85,23 +89,32 @@ public class MainActivity extends BaseActivity {
     }
 
     private void exportTasksTableToPdf(Uri pdfUri) {
-        List<PdfExporter.TaskInfo> infoList = convertTasksToInfoList(taskList); // taskList = כל המשימות!
-        boolean success = PdfExporter.exportTasksTableToPdf(this, infoList, pdfUri);
-        if (success) {
-            showToast("הקובץ נשמר בהצלחה!");
-            PdfExporter.openPdf(this, pdfUri);
+        exportDynamicTasksToPdf(pdfUri); // קריאה לפונקציה החדשה
+    }
+    private void exportDynamicTasksToPdf(Uri uri) {
+        List<PdfExporter.PdfRow> rows = new ArrayList<>();
+        for (Task t : taskList) {
+            Map<String, String> data = new LinkedHashMap<>();
+            data.put("כותרת", t.getTitle());
+            data.put("תיאור", t.getDescription());
+            data.put("סטטוס", t.isCompleted() ? "בוצעה" : "לא בוצעה");
+            data.put("נוצר בתאריך", formatDate(t.getCreatedDate()));
+            data.put("יעד סיום", formatDate(t.getDueDate()));
+            rows.add(new PdfExporter.PdfRow(data));
         }
+
+        boolean success = PdfExporter.exportDynamicTableToPdf(this, rows, uri);
+        if (success) {
+            showToast("PDF נוצר בהצלחה!");
+            PdfExporter.openPdf(this, uri);
+        }
+    }
+    private String formatDate(Date date) {
+        return date != null ? android.text.format.DateFormat.format("dd/MM/yyyy", date).toString() : "לא ידוע";
     }
 
-    private List<PdfExporter.TaskInfo> convertTasksToInfoList(List<Task> tasks) {
-        List<PdfExporter.TaskInfo> infoList = new ArrayList<>();
-        for (Task t : tasks) {
-            // דוגמה להמרת Date ל־String
-            String dateStr = android.text.format.DateFormat.format("dd/MM/yyyy", t.getDueDate()).toString();
-            infoList.add(new PdfExporter.TaskInfo(t.getTitle(), t.getDescription(), dateStr));
-        }
-        return infoList;
-    }
+
+
 
 
     private void listenForTasks() {
