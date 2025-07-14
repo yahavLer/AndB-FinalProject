@@ -2,5 +2,5 @@ jdk:
   - openjdk17
 
 install:
-  - ./gradlew :libraries:fancyviews:publishToMavenLocal
-  - ./gradlew :libraries:pdflibrary:publishToMavenLocal
+  - ./gradlew :FancyViewsLibrary:publishToMavenLocal
+  - ./gradlew :pdfLibrary:publishToMavenLocal
