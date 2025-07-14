@@ -1,0 +1,6 @@
+jdk:
+  - openjdk17
+
+install:
+  - ./gradlew :libraries:fancyviews:publishToMavenLocal
+  - ./gradlew :libraries:pdflibrary:publishToMavenLocal
