@@ -97,13 +97,33 @@ The Employee App allows employees to view and update their assigned tasks.
 ---
 
 ## Libraries
+Both libraries (`fancyviews` and `pdflibrary`) are available via **JitPack**:
+### How to Include the Libraries (via JitPack)
+To include the libraries in your project, add the following to your `build.gradle` file:
+```groovy
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
+```
 
+Then, add the dependencies for each library in your app's `build.gradle` file:
+```groovy
+dependencies {
+    implementation 'com.github.yahavLer:AndB-FinalProject:FancyViews:1.0.1'
+    implementation 'com.github.yahavLer:AndB-FinalProject:PdfLibrary:1.0.1'
+}
+```
 ### fancyviews
 The `fancyviews` library provides custom UI components for both apps, such as:
 * **Custom Buttons** – Styled buttons with animations
 * **Progress Bar** – Custom progress bar with animations
 * **Custom Dialogs** – Enhanced dialog components
-* **Gradle Configuration** – Use `implementation project(':fancyviews')` in your app's `build.gradle`
+* **Gradle Configuration** – Use `implementation 'com.github.yahavLer:AndB-FinalProject:FancyViews:1.0.1'
+` in your app's `build.gradle`
 * ### Usage
 * To use the custom views, simply include them in your layout XML files or instantiate them programmatically in your activities/fragments.
 * ### Example
@@ -134,7 +154,8 @@ public class MainActivity extends BaseActivity {
 The `pdflibrary` provides utilities for exporting task data to PDF format.
 * **PDF Export** – Export tasks as tables or visual cards
 * **PdfRow** – Flexible key-value structure for tabular data
-* **Gradle Configuration** – Use `implementation project(':pdflibrary')` in your app's `build.gradle`
+* **Gradle Configuration** – Use `implementation 'com.github.yahavLer:AndB-FinalProject:PdfLibrary:1.0.1'
+` in your app's `build.gradle`
 * ### Usage
 * To export tasks to PDF, use the `TaskExportUtils` class from the `common` module:
 ```java
@@ -168,5 +189,5 @@ This project provides a comprehensive suite of Android applications for task man
 ## Getting Started
 To get started with this project, clone the repository and open it in Android Studio. Make sure to sync the Gradle files to resolve dependencies. You can then run either the Manager App or Employee App on an emulator or physical device.
 ## Watch video
-
+[Click here to download and watch the demo video] (AndB-FinalProject/media/taskTraking.mp4)
 
