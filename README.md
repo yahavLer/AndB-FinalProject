@@ -189,5 +189,5 @@ This project provides a comprehensive suite of Android applications for task man
 ## Getting Started
 To get started with this project, clone the repository and open it in Android Studio. Make sure to sync the Gradle files to resolve dependencies. You can then run either the Manager App or Employee App on an emulator or physical device.
 ## Watch video
-[Click here to download and watch the demo video] (AndB-FinalProject/media/taskTraking.mp4)
+📹 [Click here to download and watch the demo video](media/taskTraking.mp4)
 
