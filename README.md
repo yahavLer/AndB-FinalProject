@@ -188,6 +188,10 @@ public class PdfExportActivity extends BaseActivity {
 This project provides a comprehensive suite of Android applications for task management, leveraging shared logic and reusable libraries to streamline development. The Manager App and Employee App work together to facilitate efficient task assignment and tracking, while the `fancyviews` and `pdflibrary` modules enhance the user experience with custom UI components and PDF export capabilities.
 ## Getting Started
 To get started with this project, clone the repository and open it in Android Studio. Make sure to sync the Gradle files to resolve dependencies. You can then run either the Manager App or Employee App on an emulator or physical device.
+
+## Presentation
+[https://www.canva.com/design/DAGvLarLkew/lnotrFKsoGVYy15Et0ZNVQ/edit?utm_content=DAGvLarLkew&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton]
+
 ## Watch video
 📹 [Click here to download and watch the demo video](media/taskTraking.mp4)
 
